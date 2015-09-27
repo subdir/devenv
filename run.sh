@@ -4,14 +4,21 @@ set -e
 set -o pipefail
 
 
-devdir="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")")"
+devenv_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+dev_dir="$(dirname "${devenv_dir}")"
 container_user=dev
 container_home=/home/dev
 container_workdir="${container_home}"
 docker_args=()
+volumes=yes
+
 
 while [ -n "$1" ]; do
     case "$1" in
+        --no-volumes)
+            volumes=no
+            shift
+            ;;
         --)
             shift
             break
@@ -32,12 +39,15 @@ if [[ -t 1 ]]; then
 fi
 
 
-# - монтируем devdir как хомяк, чтобы сохранялся стейт между запусками, например, .bash_history;
-# - монтируем devdir под тем же именем, что и на хосте, чтобы можно было использовать инструменты
-#   отладки на хосте, да и стектрейсы читать удобней.
+if [[ "${volumes}" == "yes" ]]; then
+    # - монтируем dev_dir как хомяк, чтобы сохранялся стейт между запусками, например, .bash_history;
+    # - монтируем dev_dir под тем же именем, что и на хосте, чтобы можно было использовать инструменты
+    #   отладки на хосте, да и стектрейсы читать удобней.
+    docker_args=("${docker_args[@]}" --volume="${dev_dir}:${dev_dir}:rw" --volume="${dev_dir}:${container_home}:rw")
+fi
+
+
 docker run \
-    --volume="${devdir}:${devdir}:rw" \
-    --volume="${devdir}:${container_home}:rw" \
     --env="PATH=$container_home/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
     --env="HOME=${container_home}" \
     --env="TARGET_USER=${container_user}" \
@@ -45,8 +55,8 @@ docker run \
     --env="TARGET_GID=$(id -g)" \
     --env="SHELL=${SHELL}" \
     --env="TERM=${TERM}" \
-    --entrypoint="${container_home}/entrypoint.sh" \
-    --workdir="${devdir}" \
+    --entrypoint="${devenv_dir}/entrypoint.sh" \
+    --workdir="${container_home}" \
     --rm \
     "${docker_args[@]}" \
     "$@"
