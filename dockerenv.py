@@ -24,9 +24,15 @@ def run(base_dir, image, docker_args, cmd, work_dir=None, entrypoint=None):
     basic_docker_args = [
         # монтируем base_dir как хомяк, чтобы сохранялся стейт между запусками, например, .bash_history
         '--volume=' + base_dir + ':' + base_dir + ':rw',
+
         # монтируем base_dir под тем же именем, что и на хосте, чтобы можно было использовать инструменты
         #   отладки на хосте, да и стектрейсы читать удобней
         '--volume=' + base_dir + ':' + container_home + ':rw',
+
+        # ssh-agent
+        '--volume=' + os.environ['SSH_AUTH_SOCK'] + ':/run/ssh:rw',
+        '--env=SSH_AUTH_SOCK=/run/ssh',
+
         '--env=PATH=' + container_home + '/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
         '--env=HOME=' + container_home,
         '--env=TARGET_USER=' + container_user,
@@ -49,7 +55,7 @@ def run(base_dir, image, docker_args, cmd, work_dir=None, entrypoint=None):
 
     status = check_call(
         shell = False,
-        args = ['docker', 'run'] + basic_docker_args + docker_args + [image] + cmd
+        args = ['docker', 'run'] + basic_docker_args + list(docker_args) + [image] + cmd
     )
     return status
 
@@ -67,10 +73,12 @@ def build_image(base_dir, base_image, cmd, work_dir=None, entrypoint=None):
             work_dir = work_dir,
             entrypoint = entrypoint,
         )
-        with open(cidfile) as cidfobj:
-            cid = cidfobj.read()
-        image_id = check_output(['docker', 'commit', cid], shell=False)
-        return image_id.strip()
+        try:
+            with open(cidfile) as cidfobj:
+                cid = cidfobj.read()
+            return check_output(['docker', 'commit', cid], shell=False).strip()
+        finally:
+            check_call(['docker', 'rm', cid], shell=False)
     finally:
         if os.path.isfile(cidfile):
             os.unlink(cidfile)
@@ -272,8 +280,8 @@ class DockerEnv(object):
             last_image_id = self.image_cache.get(layer.hexdigest).image_id
         return last_image_id
 
-    def run_cmd(self, cmd, docker_args=(), work_dir=None):
-        return run(self.base_dir, self.build(), docker_args, cmd, work_dir)
+    def build_and_run(self, cmd, docker_args=(), work_dir=None):
+        return run(self.base_dir, self.build(), list(docker_args) + ['--rm'], cmd, work_dir)
 
     def find_unused_images(self):
         keep = {layer.hexdigest for layer in self.get_layers()}
@@ -304,7 +312,7 @@ def main(env):
     if args.cleanup:
         env.cleanup()
 
-    env.run_cmd(args.cmd)
+    env.build_and_run(args.cmd)
 
 
 if __name__ == '__main__':
