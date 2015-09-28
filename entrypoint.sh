@@ -1,7 +1,4 @@
 #!/bin/bash
-#
-# Здесь не должно быть никакой лишней инициализации,
-# только создание пользователя и настройка прав.
 
 set -e
 set -o pipefail
@@ -10,16 +7,25 @@ set -o pipefail
 : ${TARGET_UID?}
 : ${TARGET_GID?}
 
-groupadd ${TARGET_USER} --gid ${TARGET_GID}
-useradd ${TARGET_USER} \
-    --uid ${TARGET_UID} \
-    --gid ${TARGET_GID} \
+userdel "${TARGET_USER}" || true
+groupdel "${TARGET_USER}" || true
+
+groupadd "${TARGET_USER}" --gid "${TARGET_GID}"
+useradd "${TARGET_USER}" \
+    --uid "${TARGET_UID}" \
+    --gid "${TARGET_GID}" \
     --groups sudo \
-    --password $(perl -e'print crypt("dev", "aa")')
+    --password "$(perl -e'print crypt("user", "aa")')"
+
+if [[ -x /usr/bin/chpst ]]; then
+    sudo_cmd="chpst -u user:user"
+elif [[ -x /usr/bin/sudo ]]; then
+    sudo_cmd="sudo -u user -g user"
+fi
 
 if [[ $# != 0 ]]; then
-    exec chpst -u dev:dev "$@"
+    exec $sudo_cmd "$@"
 else
-    exec chpst -u dev:dev bash -i
+    exec $sudo_cmd bash -i
 fi
 
