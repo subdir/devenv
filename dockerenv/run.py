@@ -10,7 +10,7 @@ from subprocess import check_call, check_output
 
 def run(base_dir, image, docker_args, cmd, work_dir=None, entrypoint=None):
     dirname = os.path.abspath(os.path.dirname(__file__))
-    default_entrypoint = os.path.join(dirname, '../hostuser.sh')
+    default_entrypoint = os.path.join(dirname, '../hostuser_entrypoint.sh')
     container_home = '/home/user'
     container_user = 'user'
 
