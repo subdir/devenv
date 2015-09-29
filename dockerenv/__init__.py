@@ -24,21 +24,28 @@ def main_env(env):
 
 
 def main(
-    repo_script_dirs,
-    env_script_dir = None,
+    script_dirs,
     base_dir = None,
     base_image = 'ubuntu:latest',
-    cache_fname = None,
+    image_cache_fname = None,
+    wrapper_script = None,
+    init_script = None,
+    cleanup_script = None,
 ):
     base_dir = base_dir or os.path.abspath(os.path.dirname(sys.argv[0]))
-    cache_fname = cache_fname or os.path.join(base_dir, 'docker_image_cache.json')
+    image_cache_fname = image_cache_fname or os.path.join(base_dir, 'docker_image_cache.json')
     env_script_dir = env_script_dir or os.path.join(base_dir, 'setup')
-    with stored_cache(cache_fname) as cache:
+    with stored_cache(image_cache_fname) as cache:
         return main_env(
             env = DockerEnv(
                 base_dir = base_dir,
                 base_image = base_image,
-                builders = get_wrapped_script_builders(env_script_dir, repo_script_dirs),
+                builders = get_wrapped_script_builders(
+                    repo_script_dirs,
+                    wrapper_script = wrapper_script,
+                    init_script = init_script,
+                    cleanup_script = cleanup_script,
+                ),
                 image_cache = cache,
             ),
         )
