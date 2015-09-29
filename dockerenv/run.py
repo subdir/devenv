@@ -8,7 +8,7 @@ import tempfile
 from subprocess import check_call, check_output
 
 
-def run(base_dir, image, docker_args, cmd, work_dir=None, entrypoint=None):
+def run(base_dir, image, docker_args, cmd, work_dir=None, entrypoint=None, remove=True):
     dirname = os.path.abspath(os.path.dirname(__file__))
     default_entrypoint = os.path.join(dirname, '../hostuser_entrypoint.sh')
     container_home = '/home/user'
@@ -32,6 +32,9 @@ def run(base_dir, image, docker_args, cmd, work_dir=None, entrypoint=None):
         '--entrypoint=' + (entrypoint or default_entrypoint),
         '--workdir=' + (work_dir or os.getcwd()),
     ]
+
+    if remove:
+        basic_docker_args.append('--rm')
 
     if 'SSH_AUTH_SOCK' in os.environ:
         basic_docker_args.extend([
@@ -68,6 +71,7 @@ def build_image(base_dir, base_image, cmd, work_dir=None, entrypoint=None):
             cmd=cmd,
             work_dir=work_dir,
             entrypoint=entrypoint,
+            remove=False,
         )
         try:
             with open(cidfile) as cidfobj:

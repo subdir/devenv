@@ -49,7 +49,7 @@ class DockerEnv(object):
         return last_image_id
 
     def build_and_run(self, cmd, docker_args=(), work_dir=None):
-        return run(self.base_dir, self.build(), list(docker_args) + ['--rm'], cmd, work_dir)
+        return run(self.base_dir, self.build(), list(docker_args), cmd, work_dir)
 
     def find_unused_images(self):
         keep = {layer.hexdigest for layer in self.get_layers()}
