@@ -19,12 +19,8 @@ def run(base_dir, image, docker_args, cmd, work_dir=None, entrypoint=None):
         '--volume=' + base_dir + ':' + base_dir + ':rw',
 
         # монтируем base_dir под тем же именем, что и на хосте, чтобы можно было использовать инструменты
-        #   отладки на хосте, да и стектрейсы читать удобней
+        # отладки на хосте, да и стектрейсы читать удобней
         '--volume=' + base_dir + ':' + container_home + ':rw',
-
-        # ssh-agent
-        '--volume=' + os.environ['SSH_AUTH_SOCK'] + ':/run/ssh:rw',
-        '--env=SSH_AUTH_SOCK=/run/ssh',
 
         '--env=PATH=' + container_home + '/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
         '--env=HOME=' + container_home,
@@ -37,10 +33,16 @@ def run(base_dir, image, docker_args, cmd, work_dir=None, entrypoint=None):
         '--workdir=' + (work_dir or os.getcwd()),
     ]
 
+    if 'SSH_AUTH_SOCK' in os.environ:
+        basic_docker_args.extend([
+            '--volume=' + os.environ['SSH_AUTH_SOCK'] + ':/run/ssh:rw',
+            '--env=SSH_AUTH_SOCK=/run/ssh',
+        ])
+
     try:
-        os.ttyname(sys.stdin.fileno()) # fails if stdin is not a tty
+        os.ttyname(sys.stdin.fileno())
     except EnvironmentError:
-        pass
+        pass # stdin is not a tty
     else:
         basic_docker_args.extend([
             '--tty',
