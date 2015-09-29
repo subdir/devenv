@@ -9,6 +9,7 @@ from contextlib import contextmanager
 
 from dockerenv.run import build_image
 
+
 class ScriptBuilder(object):
     def __init__(self, script, context, comment, entrypoint=None):
         assert 'builder.sh' not in context
@@ -40,6 +41,7 @@ class ScriptBuilder(object):
         return self.comment
 
     def update_hash(self, hashobj):
+        hashobj.update(self.entrypoint or '')
         hash_file(hashobj, self.script)
         for target_fname, fpath in self.context.iteritems():
             hashobj.update(target_fname)
@@ -67,18 +69,23 @@ def get_script_builders(script_dirs):
                 yield ScriptBuilder(fpath, {}, comment=fpath)
 
 
-def get_wrapped_script_builders(wrapperdir, script_dirs):
-    yield ScriptBuilder(os.path.join(wrapperdir, 'init.sh'), {}, comment='init.sh', entrypoint='bash')
+def get_wrapped_script_builders(script_dirs, wrapper_script=None, init_script=None, cleanup_script=None):
+    if init_script is not None:
+        yield ScriptBuilder(init_script, {}, comment=cleanup_script, entrypoint='bash')
 
     for builder in get_script_builders(script_dirs):
-        assert 'subbuilder.sh' not in builder.context
-        yield ScriptBuilder(
-            script='setup/wrapper.sh',
-            context=dict(builder.context, **{'subbuilder.sh': builder.script}), # pylint: disable=star-args
-            comment=builder.comment + ' (wrapped)',
-        )
+        if wrapper_script is None:
+            yield builder
+        else:
+            assert 'subbuilder.sh' not in builder.context
+            yield ScriptBuilder(
+                script='setup/wrapper.sh',
+                context=dict(builder.context, **{'subbuilder.sh': builder.script}), # pylint: disable=star-args
+                comment=builder.comment + ' (wrapped)',
+            )
 
-    yield ScriptBuilder(os.path.join(wrapperdir, 'cleanup.sh'), {}, comment='cleanup.sh', entrypoint='bash')
+    if cleanup_script is not None:
+        yield ScriptBuilder(cleanup_script, {}, comment=cleanup_script, entrypoint='bash')
 
 
 def hash_file(hashobj, fname, blocksize=4*1024*1024):
