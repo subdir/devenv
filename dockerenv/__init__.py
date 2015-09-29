@@ -30,11 +30,17 @@ def main(
     image_cache_fname = None,
     wrapper_script = None,
     init_script = None,
-    cleanup_script = None,
+    finalize_script = None,
 ):
     base_dir = base_dir or os.path.abspath(os.path.dirname(sys.argv[0]))
     image_cache_fname = image_cache_fname or os.path.join(base_dir, 'docker_image_cache.json')
     env_script_dir = env_script_dir or os.path.join(base_dir, 'setup')
+
+    src_dir = os.path.asbpath(os.path.dirname(__file__))
+    wrapper_script = wrapper_script or os.path.join(src_dir, '../debian_cleanup_wrapper.mk')
+    init_script = init_script or os.path.join(src_dir, '../image_init.sh')
+    finalize_script = finalize_script or os.path.join(src_dir, '../image_finalize.sh')
+
     with stored_cache(image_cache_fname) as cache:
         return main_env(
             env = DockerEnv(
@@ -44,7 +50,7 @@ def main(
                     repo_script_dirs,
                     wrapper_script = wrapper_script,
                     init_script = init_script,
-                    cleanup_script = cleanup_script,
+                    finalize_script = finalize_script,
                 ),
                 image_cache = cache,
             ),
