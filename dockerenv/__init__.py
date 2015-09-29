@@ -1,4 +1,9 @@
-from dockerenv.env import DockerEnv, main
+import sys
+import os.path
+import argparse
+import logging
+
+from dockerenv.env import DockerEnv
 from dockerenv.script_builder import get_wrapped_script_builders
 from dockerenv.image_cache import stored_cache
 
