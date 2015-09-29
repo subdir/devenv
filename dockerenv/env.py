@@ -67,18 +67,3 @@ class DockerEnv(object):
             check_call(['docker', 'rmi', image_info.image_id], shell=False)
             del self.image_cache[layer_hexdigest]
 
-
-def main(env):
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument('--cleanup', action="store_true")
-    argparser.add_argument('cmd', nargs=argparse.REMAINDER)
-    args = argparser.parse_args()
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    if args.cleanup:
-        env.cleanup()
-
-    env.build_and_run(args.cmd)
-

@@ -59,17 +59,18 @@ def make_tmpdir(base_dir=None):
         shutil.rmtree(dirpath)
 
 
-def get_script_builders(scriptdir):
-    for fname in sorted(os.listdir(scriptdir)):
-        fpath = os.path.join(scriptdir, fname)
-        if os.path.isfile(fpath) and os.access(fpath, os.X_OK):
-            yield ScriptBuilder(fpath, {}, comment=fpath)
+def get_script_builders(script_dirs):
+    for script_dir in script_dirs:
+        for fname in sorted(os.listdir(script_dir)):
+            fpath = os.path.join(script_dir, fname)
+            if os.path.isfile(fpath) and os.access(fpath, os.X_OK):
+                yield ScriptBuilder(fpath, {}, comment=fpath)
 
 
-def get_wrapped_script_builders(wrapperdir, scriptdir):
+def get_wrapped_script_builders(wrapperdir, script_dirs):
     yield ScriptBuilder(os.path.join(wrapperdir, 'init.sh'), {}, comment='init.sh', entrypoint='bash')
 
-    for builder in get_script_builders(scriptdir):
+    for builder in get_script_builders(script_dirs):
         assert 'subbuilder.sh' not in builder.context
         yield ScriptBuilder(
             script='setup/wrapper.sh',
