@@ -79,9 +79,10 @@ class Runner(object):
 
 
 class HostUserRunner(object):
-    def __init__(self, docker_args=(), allow_sudo=False):
+    def __init__(self, docker_args=(), allow_sudo=False, home_volume=None):
         self.docker_args = list(docker_args)
         self.allow_sudo = allow_sudo
+        self.home_volume = home_volume
 
     def with_image(self, image):
         return RunnerWithImage(self, image)
@@ -90,6 +91,7 @@ class HostUserRunner(object):
         return HostUserRunner(
             self.docker_args + [vol.docker_arg() for vol in volumes],
             self.allow_sudo,
+            self.home_volume,
         )
 
     def __call__(self, image, cmd, work_dir=None, remove=True):
@@ -105,8 +107,13 @@ class HostUserRunner(object):
             '--env=TARGET_UID=' + str(os.getuid()),
             '--env=TARGET_GID=' + str(os.getgid()),
             '--volume={}:{}:ro'.format(resource('hostuser_entrypoint.sh'), '/entrypoint'),
-            '--volume=' + container_home,
         ]
+
+        if self.home_volume is None:
+            basic_docker_args.append('--volume=' + container_home)
+        else:
+            basic_docker_args.append('--volume={}:{}:rw'.format(self.home_volume, container_home))
+
         if self.allow_sudo:
             basic_docker_args.append('--env=ALLOW_SUDO=1')
 
