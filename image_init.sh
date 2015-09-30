@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e
-set -o pipefail
 
+apt-get update
 apt-get install --yes --no-install-recommends sudo runit make
-echo "user ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/user
+
+apt-get autoremove --yes
+apt-get purge --yes
+apt-get clean --yes
+find /var/lib/apt/lists/ /tmp/ -mindepth 1 -maxdepth 1 -print0 | sudo xargs -0 -r rm -rf
 

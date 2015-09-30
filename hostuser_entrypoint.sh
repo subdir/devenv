@@ -14,11 +14,17 @@ useradd "${TARGET_USER}" \
     --groups sudo \
     --password "$(perl -e'print crypt("user", "aa")')"
 
+[[ -v ALLOW_SUDO ]] && echo "${TARGET_USER} ALL=(ALL:ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${TARGET_USER}"
+
+mkdir -p "$HOME"
+chown "${TARGET_USER}":"${TARGET_USER}" "$HOME"
+
 if [[ $# != 0 ]]; then
-    chpst -u user:user "$@"
+    chpst -u "${TARGET_USER}":"${TARGET_USER}" "$@"
 else
-    chpst -u user:user bash -i
+    chpst -u "${TARGET_USER}":"${TARGET_USER}" bash -i
 fi
 
+[[ -v ALLOW_SUDO ]] && rm -f "/etc/sudoers.d/${TARGET_USER}"
 userdel "${TARGET_USER}"
 
