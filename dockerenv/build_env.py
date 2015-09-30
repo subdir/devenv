@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+import os
 import argparse
 import hashlib
 import logging
@@ -9,7 +10,7 @@ from logging import info
 from subprocess import check_call, CalledProcessError
 
 from dockerenv.image_cache import ImageInfo
-from dockerenv.runner import Runner
+from dockerenv.runner import Runner, HostUserRunner, Volume
 
 
 class BuildEnv(object):
@@ -25,8 +26,10 @@ class BuildEnv(object):
             last_image = self.image_cache.get_or_make(last_image, snapshotter).image
         return last_image
 
-    def build_and_run(self, cmd, docker_args=(), work_dir=None):
-        return Runner(self.base_dir, self.build(), list(docker_args))(cmd, work_dir)
+    def build_and_run(self, cmd, work_dir=None):
+        runner = HostUserRunner(allow_sudo=True, home_volume=self.base_dir)
+        runner = runner.with_volumes([Volume(self.base_dir, self.base_dir, 'rw')])
+        return runner(self.build(), cmd, work_dir=work_dir or os.getcwd())
 
     def find_unused_images(self):
         keep = {}
