@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import os.path
 import json
+import time
+import hashlib
 from contextlib import contextmanager
 
 
@@ -21,9 +23,10 @@ class StrictDict(dict):
 
 
 class ImageInfo(object):
-    def __init__(self, image_id, comment):
-        self.image_id = image_id
+    def __init__(self, image, comment, timestamp=None):
+        self.image = image
         self.comment = comment
+        self.timestamp = timestamp or time.asctime()
 
 
 class ImageCache(object):
@@ -33,15 +36,28 @@ class ImageCache(object):
     @classmethod
     def from_dict(cls, dct):
         self = cls()
-        for layer_hexdigest, (image_id, comment) in dct.iteritems():
-            self[layer_hexdigest] = ImageInfo(image_id, comment)
+        for layer_hexdigest, info in dct.iteritems():
+            if len(info) == 2:
+                image, comment = info
+                timestamp = None
+            else:
+                image, comment, timestamp = info
+            self[layer_hexdigest] = ImageInfo(image, comment, timestamp)
         return self
 
     def as_dict(self):
         return {
-            layer_hexdigest: (image.image_id, image.comment)
+            layer_hexdigest: (image.image, image.comment, image.timestamp)
             for layer_hexdigest, image in self.iteritems()
         }
+
+    def get_or_make(self, image, snapshotter):
+        md5 = hashlib.md5()
+        md5.update(image)
+        snapshotter.update_hash(md5)
+        if md5.hexdigest() not in self:
+            self[md5.hexdigest()] = ImageInfo(snapshotter(image), snapshotter.comment)
+        return self.get(md5.hexdigest())
 
     def __contains__(self, layer_hexdigest):
         return layer_hexdigest in self.items
