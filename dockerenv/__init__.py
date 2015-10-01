@@ -34,7 +34,7 @@ def parse_config(fname, base_dir, base_image, cache):
     for rec in config:
         # TODO: support config['context']
         script_path = os.path.join(config_dir, rec['script'])
-        if rec.get('develop'):
+        if rec.get('dev'):
             yield DevelopSnapshotter([script_path], base_dir, runner)
         else:
             yield CachedSnapshotter(
@@ -82,7 +82,7 @@ def main(
 
         image = snapshotter(init_image)
         if not args.build_only:
-            runner = HostUserRunner(allow_sudo=True, home_volume=self.base_dir)
-            runner = runner.with_volumes([Volume(self.base_dir, self.base_dir, 'rw')])
+            runner = HostUserRunner(allow_sudo=True, home_volume=base_dir)
+            runner = runner.with_volumes([Volume(base_dir, base_dir, 'rw')])
             return runner(image, args.cmd, work_dir=work_dir or os.getcwd())
 
