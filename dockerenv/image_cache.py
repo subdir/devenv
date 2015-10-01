@@ -51,14 +51,6 @@ class ImageCache(object):
             for layer_hexdigest, image in self.iteritems()
         }
 
-    def get_or_make(self, image, snapshotter):
-        md5 = hashlib.md5()
-        md5.update(image)
-        snapshotter.update_hash(md5)
-        if md5.hexdigest() not in self:
-            self[md5.hexdigest()] = ImageInfo(snapshotter(image), snapshotter.comment)
-        return self.get(md5.hexdigest())
-
     def __contains__(self, layer_hexdigest):
         return layer_hexdigest in self.items
 
@@ -73,6 +65,21 @@ class ImageCache(object):
 
     def iteritems(self):
         return self.items.iteritems()
+
+
+class CachedSnapshotter(object):
+    def __init__(self, snapshotter, cache):
+        self.snapshotter = snapshotter
+        self.cache = cache
+
+    def __call__(self, image):
+        md5 = hashlib.md5()
+        md5.update(image)
+        self.snapshotter.update_hash(md5)
+        digest = md5.hexdigest()
+        if digest not in self.cache:
+            self.cache[digest] = ImageInfo(self.snapshotter(image), self.snapshotter.comment)
+        return self.cache.get(digest).image
 
 
 @contextmanager
