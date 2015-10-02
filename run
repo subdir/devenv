@@ -1,0 +1,13 @@
+#!/usr/bin/python
+
+from dockerenv import main
+
+if __name__ == '__main__':
+    main(
+        target_configs = {
+            'dev': 'setup/dockerenv_dev.json',
+            'test': 'setup/dockerenv_test.json',
+            'prod': 'setup/dockerenv_prod.json',
+        },
+    )
+
