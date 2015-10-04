@@ -115,7 +115,7 @@ class CachedImage(object):
         self.image = image
 
     def apply(self, snapshotter):
-        with stored_cache('dockerenv_image_cache.json') as cache:
+        with stored_cache(os.path.expanduser('~/.dockerenv_image_cache.json')) as cache:
             return CachedImage(CachedSnapshotter(snapshotter, cache)(self.image))
 
     def apply_no_cache(self, snapshotter):
