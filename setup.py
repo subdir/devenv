@@ -8,7 +8,6 @@ setup(
     description='Utilities for developing, testing, building and deploying code using docker',
     author='Alexey Akimov',
     url='https://github.com/subdir/dockerenv',
-    scripts=['run'],
     packages=['dockerenv'],
     package_data={'dockerenv': [
         'debian_cleanup_wrapper.sh',
