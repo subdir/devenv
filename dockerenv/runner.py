@@ -34,7 +34,11 @@ class Runner(object):
         if self.entrypoint:
             basic_docker_args.append('--entrypoint=' + self.entrypoint)
 
-        if self.forward_ssh_agent and 'SSH_AUTH_SOCK' in os.environ:
+        if (
+            self.forward_ssh_agent
+            and 'SSH_AUTH_SOCK' in os.environ
+            and os.path.exists(os.environ['SSH_AUTH_SOCK'])
+        ):
             auth_sock = '/run/ssh_auth_sock'
             basic_docker_args.extend([
                 '--volume=' + os.environ['SSH_AUTH_SOCK'] + ':' + auth_sock + ':rw',
