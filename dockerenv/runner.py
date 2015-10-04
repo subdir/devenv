@@ -10,14 +10,6 @@ from subprocess import check_call, check_output
 
 from dockerenv.utils import resource, make_tmpdir
 
-'''
-                # монтируем base_dir как хомяк, чтобы сохранялся стейт между запусками, например, .bash_history
-                '--volume=' + self.base_dir + ':' + self.base_dir + ':rw',
-
-                # монтируем base_dir под тем же именем, что и на хосте, чтобы можно было использовать инструменты
-                # отладки на хосте, да и стектрейсы читать удобней
-                '--volume=' + self.base_dir + ':' + container_home + ':rw',
-'''
 
 class Runner(object):
     def __init__(self, docker_args=(), entrypoint=None):

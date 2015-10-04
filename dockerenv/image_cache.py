@@ -23,9 +23,10 @@ class StrictDict(dict):
 
 
 class ImageInfo(object):
-    def __init__(self, image, comment, timestamp=None):
+    def __init__(self, image, comment, parent=None, timestamp=None):
         self.image = image
         self.comment = comment
+        self.parent = parent
         self.timestamp = timestamp or time.asctime()
 
 
@@ -36,32 +37,41 @@ class ImageCache(object):
     @classmethod
     def from_dict(cls, dct):
         self = cls()
-        for layer_hexdigest, info in dct.iteritems():
-            if len(info) == 2:
-                image, comment = info
-                timestamp = None
+        for snapshotter_hash, info in dct.iteritems():
+            if isinstance(info, dict):
+                self[snapshotter_hash] = ImageInfo(
+                    image = info['image'],
+                    comment = info['comment'],
+                    parent = info.get('parent'),
+                    timestamp = info.get('timestamp'),
+                )
             else:
                 image, comment, timestamp = info
-            self[layer_hexdigest] = ImageInfo(image, comment, timestamp)
+                self[snapshotter_hash] = ImageInfo(image, comment, None, timestamp)
         return self
 
     def as_dict(self):
         return {
-            layer_hexdigest: (image.image, image.comment, image.timestamp)
-            for layer_hexdigest, image in self.iteritems()
+            snapshotter_hash: {
+                'image': image.image,
+                'comment': image.comment,
+                'parent': image.parent,
+                'timestamp': image.timestamp,
+            }
+            for snapshotter_hash, image in self.iteritems()
         }
 
-    def __contains__(self, layer_hexdigest):
-        return layer_hexdigest in self.items
+    def __contains__(self, snapshotter_hash):
+        return snapshotter_hash in self.items
 
-    def __setitem__(self, layer_hexdigest, image_info):
-        self.items[layer_hexdigest] = image_info
+    def __setitem__(self, snapshotter_hash, image_info):
+        self.items[snapshotter_hash] = image_info
 
-    def __delitem__(self, layer_hexdigest):
-        del self.items[layer_hexdigest]
+    def __delitem__(self, snapshotter_hash):
+        del self.items[snapshotter_hash]
 
-    def get(self, layer_hexdigest):
-        return self.items.get(layer_hexdigest)
+    def get(self, snapshotter_hash):
+        return self.items.get(snapshotter_hash)
 
     def iteritems(self):
         return self.items.iteritems()
@@ -78,7 +88,11 @@ class CachedSnapshotter(object):
         self.snapshotter.update_hash(md5)
         digest = md5.hexdigest()
         if digest not in self.cache:
-            self.cache[digest] = ImageInfo(self.snapshotter(image), self.snapshotter.comment)
+            self.cache[digest] = ImageInfo(
+                image = self.snapshotter(image),
+                comment = self.snapshotter.comment,
+                parent = image,
+            )
         return self.cache.get(digest).image
 
 
