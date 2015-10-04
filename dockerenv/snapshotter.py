@@ -108,10 +108,9 @@ class CompoundSnapshotter(object):
         self.snapshotters = snapshotters
 
     def __call__(self, image):
-        last_image = image
         for snapshotter in self.snapshotters:
-            last_image = snapshotter(last_image)
-        return last_image
+            image = snapshotter(image)
+        return image
 
 
 def hash_file(hashobj, fname, blocksize=4*1024*1024):
