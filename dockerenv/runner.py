@@ -12,9 +12,10 @@ from dockerenv.utils import resource, make_tmpdir
 
 
 class Runner(object):
-    def __init__(self, docker_args=(), entrypoint=None):
+    def __init__(self, docker_args=(), entrypoint=None, forward_ssh_agent=False):
         self.docker_args = list(docker_args)
         self.entrypoint = entrypoint
+        self.forward_ssh_agent = forward_ssh_agent
 
     def with_image(self, image):
         return RunnerWithImage(self, image)
@@ -33,7 +34,7 @@ class Runner(object):
         if self.entrypoint:
             basic_docker_args.append('--entrypoint=' + self.entrypoint)
 
-        if 'SSH_AUTH_SOCK' in os.environ:
+        if self.forward_ssh_agent and 'SSH_AUTH_SOCK' in os.environ:
             auth_sock = '/run/ssh_auth_sock'
             basic_docker_args.extend([
                 '--volume=' + os.environ['SSH_AUTH_SOCK'] + ':' + auth_sock + ':rw',
