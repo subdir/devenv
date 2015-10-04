@@ -95,3 +95,15 @@ def stored_cache(fname):
         with open(fname, 'w') as fobj:
             json.dump(cache.as_dict(), fobj, indent=4)
 
+
+class CachedImage(object):
+    def __init__(self, image):
+        self.image = image
+
+    def apply(self, snapshotter):
+        with stored_cache('dockerenv_image_cache.json') as cache:
+            return CachedImage(CachedSnapshotter(snapshotter, cache)(self.image))
+
+    def apply_no_cache(self, snapshotter):
+        return CachedImage(snapshotter(self.image))
+
