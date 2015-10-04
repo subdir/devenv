@@ -64,7 +64,7 @@ class Cmd(object):
     def __init__(self, cmd, context, comment=None):
         self.cmd = cmd
         self.context = context
-        self.comment = comment or " ".join(cmd)
+        self.comment = comment or os.getcwd() + ": " + (" ".join(cmd))
 
     @classmethod
     def from_script(cls, script, args=(), context=None):
@@ -89,7 +89,7 @@ class HostUserCwdCmd(object):
         self.cmd = cmd
         self.work_dir = work_dir or os.getcwd()
         self.allow_sudo = allow_sudo
-        self.comment = comment or " ".join(self.cmd)
+        self.comment = comment or self.work_dir + ": " + (" ".join(self.cmd))
 
     def __call__(self, image):
         return snapshot(
