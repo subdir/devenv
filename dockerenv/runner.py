@@ -92,6 +92,13 @@ class HostUserRunner(object):
             self.home_volume,
         )
 
+    def with_link(self, container_name, alias):
+        return HostUserRunner(
+            self.docker_args + ['--link={}:{}'.format(container_name, alias)],
+            self.allow_sudo,
+            self.home_volume,
+        )
+
     def __call__(self, image, cmd, work_dir=None, remove=True):
         container_username = 'user'
         container_home = '/home/' + container_username
@@ -150,4 +157,3 @@ class Volume(object):
 
     def docker_arg(self):
         return '--volume={}:{}:{}'.format(os.path.abspath(self.host_path), self.container_path, self.mode)
-
