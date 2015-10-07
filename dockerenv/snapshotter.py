@@ -92,14 +92,16 @@ class HostUserCwdCmd(object):
         self.comment = comment or self.work_dir + ": " + (" ".join(self.cmd))
 
     def __call__(self, image):
+        work_dir = os.path.abspath(self.work_dir)
         return snapshot(
             HostUserRunner(allow_sudo=self.allow_sudo).with_volumes([
-                Volume(os.path.abspath(self.work_dir), '/dockerenv', 'rw')
+                Volume(os.path.join(work_dir, '.dockerenv.home'), '/home/user', 'rw'),
+                Volume(self.work_dir, self.work_dir, 'rw')
             ]).with_image(
                 image
             ),
             self.cmd,
-            work_dir = '/dockerenv',
+            work_dir = work_dir,
         )
 
 
@@ -144,4 +146,3 @@ def hash_dir(hashobj, dirpath):
 def hash_str(hashobj, string):
     hashobj.update(string)
     hashobj.update(struct.pack("Q", len(string)))
-
