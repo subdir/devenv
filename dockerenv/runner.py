@@ -92,6 +92,15 @@ class HostUserRunner(object):
             self.home_volume,
         )
 
+    def with_environment(self, env):
+        if isinstance(env, dict):
+            env = env.iteritems()
+        return HostUserRunner(
+            self.docker_args + ['--env={}={}'.format(k, v) for k, v in env],
+            self.allow_sudo,
+            self.home_volume,
+        )
+
     def with_link(self, container_name, alias):
         return HostUserRunner(
             self.docker_args + ['--link={}:{}'.format(container_name, alias)],
