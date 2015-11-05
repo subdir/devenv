@@ -101,6 +101,16 @@ class HostUserRunner(object):
             self.home_volume,
         )
 
+    def with_expose(self, expose):
+        assert all(isinstance(port, int) for port in expose)
+        return HostUserRunner(
+            self.docker_args + [
+                '--expose={}'.format(port) for port in expose
+            ],
+            self.allow_sudo,
+            self.home_volume,
+        )
+
     def with_link(self, container_name, alias):
         return HostUserRunner(
             self.docker_args + ['--link={}:{}'.format(container_name, alias)],
@@ -108,7 +118,7 @@ class HostUserRunner(object):
             self.home_volume,
         )
 
-    def __call__(self, image, cmd, work_dir=None, remove=True):
+    def __call__(self, image, cmd, work_dir=None, remove=True, name=None):
         container_username = 'user'
         container_home = '/home/' + container_username
 
@@ -130,6 +140,9 @@ class HostUserRunner(object):
 
         if self.allow_sudo:
             basic_docker_args.append('--env=ALLOW_SUDO=1')
+
+        if name is not None:
+            basic_docker_args.append('--name={}'.format(name))
 
         runner = Runner(
             basic_docker_args + self.docker_args,
