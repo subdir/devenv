@@ -111,6 +111,15 @@ class HostUserRunner(object):
             self.home_volume,
         )
 
+    def with_publish(self, port_pairs):
+        return HostUserRunner(
+            self.docker_args + [
+                '--publish=:{:d}:{:d}'.format(*p) for p in port_pairs
+            ],
+            self.allow_sudo,
+            self.home_volume,
+        )
+
     def with_link(self, container_name, alias):
         return HostUserRunner(
             self.docker_args + ['--link={}:{}'.format(container_name, alias)],
