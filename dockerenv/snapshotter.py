@@ -1,17 +1,11 @@
 # coding: utf-8
-
 from __future__ import print_function
 
 import os
-import re
-import tempfile
-import shutil
 import struct
-from contextlib import contextmanager
-from subprocess import check_output, check_call, CalledProcessError
+from subprocess import check_output, check_call
 
 from dockerenv.runner import Runner, HostUserRunner, Volume
-from dockerenv.utils import make_tmpdir
 
 
 def snapshot(runner_with_image, cmd, work_dir=None):
@@ -26,18 +20,18 @@ class Context(object):
     def __init__(self, context):
         self.context = context
 
-    def as_volumes(self, base_dir='/', mode='ro'):
+    def as_volumes(self, base_dir='/'):
         return [
             Volume(fpath, os.path.join(base_dir, target_fname), mode)
-                for target_fname, fpath in self.context.iteritems()
+                for target_fname, (fpath, mode) in self.context.iteritems()
         ]
 
-    def added(self, target_fname, fpath):
+    def added(self, target_fname, fpath, mode='ro'):
         context = Context(dict(self.context))
-        context.add(target_fname, fpath)
+        context.add(target_fname, fpath, mode)
         return context
 
-    def add(self, target_fname, fpath):
+    def add(self, target_fname, fpath, mode='ro'):
         if target_fname in self.context:
             raise Exception('Context conflict {!r}: {!r} -> {!r}'.format(
                 target_fname,
@@ -45,14 +39,15 @@ class Context(object):
                 fpath,
             ))
         else:
-            self.context[target_fname] = fpath
+            self.context[target_fname] = (fpath, mode)
 
     def __contains__(self, item):
         return item in self.context
 
     def update_hash(self, hashobj):
-        for target_fname, fpath in self.context.iteritems():
+        for target_fname, (fpath, mode) in self.context.iteritems():
             hash_str(hashobj, target_fname)
+            hash_str(hashobj, mode)
             if os.path.isdir(fpath):
                 hash_dir(hashobj, fpath)
             else:
@@ -84,22 +79,31 @@ class Cmd(object):
         self.context.update_hash(hashobj)
 
 
-class HostUserCwdCmd(object):
-    def __init__(self, cmd, work_dir=None, allow_sudo=False, comment=None):
-        self.cmd = cmd
+class HostUserCwdCmd(Cmd):
+    def __init__(self, cmd, context, work_dir=None,
+                 allow_sudo=False, comment=None):
         self.work_dir = work_dir or os.getcwd()
         self.allow_sudo = allow_sudo
-        self.comment = comment or self.work_dir + ": " + (" ".join(self.cmd))
+        comment = comment or self.work_dir + ": " + (" ".join(cmd))
+        super(HostUserCwdCmd, self).__init__(cmd, context, comment)
+
+    @classmethod
+    def from_script(cls, script, args=(), context=None,  # pylint: disable=arguments-differ
+                    work_dir=None, allow_sudo=None):
+        script = os.path.abspath(script)
+        context = (context or Context({})).added(script, script)
+        return cls([script] + list(args), context, work_dir, allow_sudo)
 
     def __call__(self, image):
         work_dir = os.path.abspath(self.work_dir)
+        volumes = [
+            Volume(os.path.join(work_dir, '.dockerenv.home'), '/home/user', 'rw'),
+            Volume(self.work_dir, self.work_dir, 'rw')
+        ] + self.context.as_volumes()
+
         return snapshot(
-            HostUserRunner(allow_sudo=self.allow_sudo).with_volumes([
-                Volume(os.path.join(work_dir, '.dockerenv.home'), '/home/user', 'rw'),
-                Volume(self.work_dir, self.work_dir, 'rw')
-            ]).with_image(
-                image
-            ),
+            HostUserRunner(allow_sudo=self.allow_sudo).with_volumes(
+                volumes).with_image(image),
             self.cmd,
             work_dir = work_dir,
         )
